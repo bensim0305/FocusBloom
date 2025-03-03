@@ -12,6 +12,7 @@ Data Structures: Should have a dictionary with task details so we can update acc
 """
 import sys
 import datetime
+import os.path
 import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -21,51 +22,64 @@ from googleapiclient.discovery import build
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-def authenticate_google_calendar():
-    """Authenticate and return the Google Calendar API service."""
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    return build('calendar', 'v3', credentials=creds)
+class FocusBloomCal:
+    """ class to hold functions to be used alongside focusbloom app. Functions include:
+        - scheduling
+        - authentication
+        - personalization (work times, preferences, etc.)
+        """
+    
+    def __init__(self, work_time_start, work_time_end, color=None):
+        self.start_work = work_time_start
+        self.end_work = work_time_end
+        
+    def authenticate_google_calendar(self):
+        """Authenticate and return the Google Calendar API service."""
+        creds = None
+        if os.path.exists('token.json'):
+            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
+        return build('calendar', 'v3', credentials=creds)
 
-def create_event(service, task_name, start_time, end_time):
-    """Create a Google Calendar event."""
-    event = {
-        'summary': task_name,
-        'start': {
-            'dateTime': start_time,
-            'timeZone': 'UTC',
-        },
-        'end': {
-            'dateTime': end_time,
-            'timeZone': 'UTC',
-        },
-    }
-    event = service.events().insert(calendarId='primary', body=event).execute()
-    print(f"Event created: {event.get('htmlLink')}")
+    def create_event(self, service, task_name, start_time, end_time):
+        """Create a Google Calendar event."""
+        event = {
+            'summary': task_name,
+            'start': {
+                'dateTime': start_time,
+                'timeZone': 'UTC',
+            },
+            'end': {
+                'dateTime': end_time,
+                'timeZone': 'UTC',
+            },
+        }
+        event = service.events().insert(calendarId='primary', body=event).execute()
+        print(f"Event created: {event.get('htmlLink')}")
 
-def schedule_homework_sessions(task_name, time_increment, priority, due_date):
-    """Schedule homework sessions based on the given parameters."""
-    service = authenticate_google_calendar()
-    due_date = datetime.datetime.strptime(due_date, '%Y-%m-%d')
-    current_time = datetime.datetime.utcnow()
+    def schedule_homework_sessions(self, task_name, time_increment, priority, due_date):
+        """Schedule homework sessions based on the given parameters."""
+        service = self.authenticate_google_calendar()
+        due_date = datetime.datetime.strptime(due_date, '%Y-%m-%d')
+        current_time = datetime.datetime.utcnow()
 
-    while current_time < due_date:
-        end_time = current_time + datetime.timedelta(minutes=time_increment)
-        create_event(service, task_name, current_time.isoformat(), end_time.isoformat())
-        current_time = end_time + datetime.timedelta(hours=1)  # Add a break between sessions
+        while current_time < due_date:
+            end_time = current_time + datetime.timedelta(minutes=time_increment)
+            self.create_event(service, task_name, current_time.isoformat(), end_time.isoformat())
+            current_time = end_time + datetime.timedelta(hours=1)  # Add a break between sessions
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 5:
         print("Usage: python schedule_homework.py <task_name> <time_increment> <priority> <due_date>")
+        # example: python3 gcal_api.py "HCI-Eng" 90 2 "2025-03-07"
         sys.exit(1)
 
     task_name = sys.argv[1]
