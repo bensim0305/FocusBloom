@@ -98,13 +98,31 @@ class FocusBloomCal:
             start = event['start'].get('dateTime', event['start'].get('date'))
             print(f"{start} - {event['summary']}")
 
+def is_valid_input(work_time_start, work_time_end):
+    """Checks if time inputs are of valid format"""
+    try:
+        start = datetime.datetime.strptime(work_time_start, "%H:%M").time()
+        end = datetime.datetime.strptime(work_time_end, "%H:%M").time()
+    except:
+        return False
+    if end < start:
+        return False
+    return True
+
 def prompt_for_working_hours():
     """Prompt the user for their preferred working hours."""
-    work_time_start = input("Enter your preferred start time for work (HH:MM, e.g., 09:00): ")
-    work_time_end = input("Enter your preferred end time for work (HH:MM, e.g., 17:00): ")
+    valid_entry = False
+    while not valid_entry:
+        work_time_start = input("Enter your preferred start time for work (HH:MM, e.g., 09:00): ")
+        work_time_end = input("Enter your preferred end time for work (HH:MM, e.g., 17:00): ")
+        if (not is_valid_input(work_time_start, work_time_end)):
+            print("Error: Input is invalid!")
+        else:
+            valid_entry = True
     return work_time_start, work_time_end
 
 def main():
+    # session = True
     parser = argparse.ArgumentParser(description="FocusBloom Calendar CLI")
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
 
@@ -124,12 +142,17 @@ def main():
     work_time_start, work_time_end = prompt_for_working_hours()
     user_calendar = FocusBloomCal(work_time_start, work_time_end)
 
+    # while (session):
     if args.command == 'schedule':
         user_calendar.schedule_homework_sessions(args.task_name, args.time_increment, args.due_date)
     elif args.command == 'list':
         user_calendar.list_events(args.max_results)
+    elif args.command == 'quit':
+        session = False
     else:
         parser.print_help()
+        # response = input()
+        
 
 if __name__ == '__main__':
     main()
