@@ -17,6 +17,7 @@ class FocusBloomCal:
         """Initialize with preferred working hours for weekdays."""
         self.work_time_start = datetime.datetime.strptime(work_time_start, "%H:%M").time()
         self.work_time_end = datetime.datetime.strptime(work_time_end, "%H:%M").time()
+        self.event_times = {}
         
     def authenticate_google_calendar(self):
         """Authenticate and return the Google Calendar API service."""
@@ -105,6 +106,9 @@ def prompt_for_working_hours():
     return work_time_start, work_time_end
 
 def main():
+    """
+    Example usage: python3 gcal_api.py schedule "inclusive project" 90 "2025-03-07"   
+    """
     parser = argparse.ArgumentParser(description="FocusBloom Calendar CLI")
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
 
