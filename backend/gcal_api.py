@@ -1,16 +1,4 @@
-"""
-File for communicated with the Google Calendar API. Functions here should be used for FocusBloom.
-Functions to implement:
-    - Schedule Task: based on parameters given by user, such as how long each wokr session would take, 
-    when it is due, priority, name of task. These can for now be implemented through command line
-        - Helper: look through calendar to find open timeslot
-    - Reschedule Task: User can reschedule task to add on to next available day before due date
-Data Structures: Should have a dictionary with task details so we can update accordingly with dates 
-    to work on, length of how long it should take, etc. Should update whenever a task is finished
-
-
-"""
-import sys
+import argparse
 import datetime
 import os.path
 import google.auth
@@ -23,15 +11,12 @@ from googleapiclient.discovery import build
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 class FocusBloomCal:
-    """ class to hold functions to be used alongside focusbloom app. Functions include:
-        - scheduling
-        - authentication
-        - personalization (work times, preferences, etc.)
-        """
+    """Class to hold functions to be used alongside FocusBloom app."""
     
-    def __init__(self, work_time_start, work_time_end, color=None):
-        self.start_work = work_time_start
-        self.end_work = work_time_end
+    def __init__(self, work_time_start="09:00", work_time_end="17:00"):
+        """Initialize with preferred working hours for weekdays."""
+        self.work_time_start = datetime.datetime.strptime(work_time_start, "%H:%M").time()
+        self.work_time_end = datetime.datetime.strptime(work_time_end, "%H:%M").time()
         
     def authenticate_google_calendar(self):
         """Authenticate and return the Google Calendar API service."""
@@ -49,42 +34,102 @@ class FocusBloomCal:
         return build('calendar', 'v3', credentials=creds)
 
     def create_event(self, service, task_name, start_time, end_time):
-        """Create a Google Calendar event."""
+        """Create a Google Calendar event in CST timezone."""
         event = {
             'summary': task_name,
             'start': {
                 'dateTime': start_time,
-                'timeZone': 'UTC',
+                'timeZone': 'America/Chicago',  # Set timezone to CST
             },
             'end': {
                 'dateTime': end_time,
-                'timeZone': 'UTC',
+                'timeZone': 'America/Chicago',  # Set timezone to CST
             },
         }
         event = service.events().insert(calendarId='primary', body=event).execute()
         print(f"Event created: {event.get('htmlLink')}")
 
-    def schedule_homework_sessions(self, task_name, time_increment, priority, due_date):
-        """Schedule homework sessions based on the given parameters."""
+    def schedule_homework_sessions(self, task_name, time_increment, due_date):
+        """
+        Schedule homework sessions up to 2 times a day within preferred working hours.
+        """
         service = self.authenticate_google_calendar()
-        due_date = datetime.datetime.strptime(due_date, '%Y-%m-%d')
-        current_time = datetime.datetime.utcnow()
+        due_date = datetime.datetime.strptime(due_date, '%Y-%m-%d').date()
+        current_date = datetime.datetime.now().date()  # Use local time
 
-        while current_time < due_date:
-            end_time = current_time + datetime.timedelta(minutes=time_increment)
-            self.create_event(service, task_name, current_time.isoformat(), end_time.isoformat())
-            current_time = end_time + datetime.timedelta(hours=1)  # Add a break between sessions
+        while current_date < due_date:
+            # Skip weekends (Saturday=5, Sunday=6)
+            if current_date.weekday() < 5:  # 0-4 are weekdays
+                # Schedule up to 2 sessions per day
+                for session in range(2):
+                    # Calculate start and end times for the session
+                    start_time = datetime.datetime.combine(
+                        current_date,
+                        self.work_time_start
+                    ) + datetime.timedelta(hours=session * (time_increment / 60 + 1))  # Add break between sessions
+                    end_time = start_time + datetime.timedelta(minutes=time_increment)
 
+                    # Check if the session fits within working hours
+                    if end_time.time() <= self.work_time_end:
+                        # Format times in ISO format with CST timezone
+                        start_time_iso = start_time.isoformat()
+                        end_time_iso = end_time.isoformat()
+
+                        # Create the event
+                        self.create_event(service, task_name, start_time_iso, end_time_iso)
+                    else:
+                        break  # Stop scheduling for the day if the session doesn't fit
+
+            # Move to the next day
+            current_date += datetime.timedelta(days=1)
+
+    def list_events(self, max_results=10):
+        """List the next 10 events on the user's calendar."""
+        service = self.authenticate_google_calendar()
+        now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+        events_result = service.events().list(calendarId='primary', timeMin=now,
+                                              maxResults=max_results, singleEvents=True,
+                                              orderBy='startTime').execute()
+        events = events_result.get('items', [])
+
+        if not events:
+            print('No upcoming events found.')
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            print(f"{start} - {event['summary']}")
+
+def prompt_for_working_hours():
+    """Prompt the user for their preferred working hours."""
+    work_time_start = input("Enter your preferred start time for work (HH:MM, e.g., 09:00): ")
+    work_time_end = input("Enter your preferred end time for work (HH:MM, e.g., 17:00): ")
+    return work_time_start, work_time_end
+
+def main():
+    parser = argparse.ArgumentParser(description="FocusBloom Calendar CLI")
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+
+    # Schedule task command
+    schedule_parser = subparsers.add_parser('schedule', help='Schedule a new task')
+    schedule_parser.add_argument('task_name', type=str, help='Name of the task')
+    schedule_parser.add_argument('time_increment', type=int, help='Duration of each work session in minutes')
+    schedule_parser.add_argument('due_date', type=str, help='Due date of the task (YYYY-MM-DD)')
+
+    # List events command
+    list_parser = subparsers.add_parser('list', help='List upcoming events')
+    list_parser.add_argument('--max_results', type=int, default=10, help='Maximum number of events to list')
+
+    args = parser.parse_args()
+
+    # Prompt for preferred working hours
+    work_time_start, work_time_end = prompt_for_working_hours()
+    user_calendar = FocusBloomCal(work_time_start, work_time_end)
+
+    if args.command == 'schedule':
+        user_calendar.schedule_homework_sessions(args.task_name, args.time_increment, args.due_date)
+    elif args.command == 'list':
+        user_calendar.list_events(args.max_results)
+    else:
+        parser.print_help()
 
 if __name__ == '__main__':
-    if len(sys.argv) != 5:
-        print("Usage: python schedule_homework.py <task_name> <time_increment> <priority> <due_date>")
-        # example: python3 gcal_api.py "HCI-Eng" 90 2 "2025-03-07"
-        sys.exit(1)
-
-    task_name = sys.argv[1]
-    time_increment = int(sys.argv[2])
-    priority = int(sys.argv[3])
-    due_date = sys.argv[4]
-
-    schedule_homework_sessions(task_name, time_increment, priority, due_date)
+    main()
