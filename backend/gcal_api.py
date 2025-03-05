@@ -110,9 +110,6 @@ class FocusBloomCal:
                                                orderBy='startTime').execute() 
         events = events_result.get('items', [])
 
-        
-
-
     def prompt_for_working_hours(self):
         """Prompt the user for their preferred working hours."""
         valid_entry = False
