@@ -158,11 +158,14 @@ def main():
     schedule_parser.add_argument('task_name', type=str, help='Name of the task')
     schedule_parser.add_argument('duration', type=int, help='Duration of each work session in minutes')
     schedule_parser.add_argument('due_date', type=str, help='Due date of the task (YYYY-MM-DD)')
+    
 
     # List events command
     list_parser = subparsers.add_parser('list', help='List upcoming events')
     list_parser.add_argument('--max_results', type=int, default=10, help='Maximum number of events to list')
 
+
+    subparsers.add_parser('fetch', help='fetch events testing')
     args = parser.parse_args()
 
     # Initalize object
