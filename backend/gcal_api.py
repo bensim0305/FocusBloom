@@ -54,6 +54,7 @@ class FocusBloomCal:
             except Exception as e:
                 print(f"An error occurred: {e}")
                 break
+        print(events)
         return events
 
     def create_event(self, service, task_name, start_time, end_time):
@@ -72,7 +73,7 @@ class FocusBloomCal:
         event = service.events().insert(calendarId='primary', body=event).execute()
         print(f"Event created: {event.get('htmlLink')}")
 
-    def schedule_homework_sessions(self, task_name, time_increment, due_date):
+    def schedule_homework_sessions(self, task_name, duration, due_date):
         """
         Schedule homework sessions up to 2 times a day within preferred working hours.
         """
@@ -89,8 +90,8 @@ class FocusBloomCal:
                     start_time = datetime.datetime.combine(
                         current_date,
                         self.work_time_start
-                    ) + datetime.timedelta(hours=session * (time_increment / 60 + 1))  # Add break between sessions
-                    end_time = start_time + datetime.timedelta(minutes=time_increment)
+                    ) + datetime.timedelta(hours=session * (duration / 60 + 1))  # Add break between sessions
+                    end_time = start_time + datetime.timedelta(minutes=duration)
 
                     # Check if the session fits within working hours
                     if end_time.time() <= self.work_time_end:
@@ -105,6 +106,18 @@ class FocusBloomCal:
 
             # Move to the next day
             current_date += datetime.timedelta(days=1)
+
+    def prompt_for_working_hours(self):
+        """Prompt the user for their preferred working hours."""
+        valid_entry = False
+        while not valid_entry:
+            work_time_start = input("Enter your preferred start time for work (HH:MM, e.g., 09:00): ")
+            work_time_end = input("Enter your preferred end time for work (HH:MM, e.g., 17:00): ")
+            if (not is_valid_input(work_time_start, work_time_end)):
+                print("Error: Input is invalid!")
+            else:
+                valid_entry = True
+        return datetime.datetime.strptime(work_time_start, "%H:%M").time(), datetime.datetime.strptime(work_time_end, "%H:%M").time()
 
     def list_events(self, max_results=10):
         """List the next 10 events on the user's calendar."""
@@ -132,17 +145,6 @@ def is_valid_input(work_time_start, work_time_end):
         return False
     return True
 
-def prompt_for_working_hours():
-    """Prompt the user for their preferred working hours."""
-    valid_entry = False
-    while not valid_entry:
-        work_time_start = input("Enter your preferred start time for work (HH:MM, e.g., 09:00): ")
-        work_time_end = input("Enter your preferred end time for work (HH:MM, e.g., 17:00): ")
-        if (not is_valid_input(work_time_start, work_time_end)):
-            print("Error: Input is invalid!")
-        else:
-            valid_entry = True
-    return work_time_start, work_time_end
 
 def main():
     """
@@ -154,7 +156,7 @@ def main():
     # Schedule task command
     schedule_parser = subparsers.add_parser('schedule', help='Schedule a new task')
     schedule_parser.add_argument('task_name', type=str, help='Name of the task')
-    schedule_parser.add_argument('time_increment', type=int, help='Duration of each work session in minutes')
+    schedule_parser.add_argument('duration', type=int, help='Duration of each work session in minutes')
     schedule_parser.add_argument('due_date', type=str, help='Due date of the task (YYYY-MM-DD)')
 
     # List events command
@@ -163,17 +165,17 @@ def main():
 
     args = parser.parse_args()
 
-    # Prompt for preferred working hours
-    work_time_start, work_time_end = prompt_for_working_hours()
-    user_calendar = FocusBloomCal(work_time_start, work_time_end)
+    # Initalize object
+    user_calendar = FocusBloomCal()
 
     # while (session):
     if args.command == 'schedule':
-        user_calendar.schedule_homework_sessions(args.task_name, args.time_increment, args.due_date)
+        user_calendar.work_time_start, user_calendar.work_time_end = user_calendar.prompt_for_working_hours()
+        user_calendar.schedule_homework_sessions(args.task_name, args.duration, args.due_date)
     elif args.command == 'list':
         user_calendar.list_events(args.max_results)
-    elif args.command == 'quit':
-        session = False
+    elif args.command == 'fetch':
+        user_calendar.fetch_events()
     else:
         parser.print_help()
         # response = input()
@@ -181,4 +183,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    print(self.events)
+    
