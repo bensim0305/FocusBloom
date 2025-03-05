@@ -19,7 +19,7 @@ class FocusBloomCal:
         self.work_time_end = datetime.datetime.strptime(work_time_end, "%H:%M").time()
         self.service = self.authenticate_google_calendar()
         page_token = None
-        self.event = self.fetch_events() # list of existing events.
+        # self.event = self.fetch_events() # list of existing events.
 
         
     def authenticate_google_calendar(self):
@@ -49,7 +49,7 @@ class FocusBloomCal:
                     event_title = event.get('summary')
                     events[event_title] = event  # Store the entire event as the value
                     page_token = events_result.get('nextPageToken')
-                    if not page_token:
+                if not page_token:
                         break
             except Exception as e:
                 print(f"An error occurred: {e}")
@@ -181,4 +181,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    print(self.events)
