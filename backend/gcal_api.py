@@ -2,6 +2,7 @@ import argparse
 import datetime
 import os.path
 import google.auth
+from zoneinfo import ZoneInfo
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -196,11 +197,17 @@ class FocusBloomCal:
             return False
         
 
-    def reschedule_next_event(self, now, break_mins=0): 
-        service = self.service
+    def reschedule_next_event(self, break_mins=0): 
+        service = self.authenticate_google_calendar()
 
-        ''' End of tomorrow (now only reschedule within 2 days) '''
-        EOD_tmrw = datetime.datetime.combine(now + datetime.timedelta(days=1), time.max)
+        now = datetime.datetime.now(tz=ZoneInfo("America/Chicago"))
+
+        ''' 
+        End of tomorrow (now only reschedule within 2 days) 
+        '''
+        EOD_tmrw = datetime.datetime.combine(now + datetime.timedelta(days=1), datetime.time.max)
+        print(f"EOD_tmrw: {EOD_tmrw}")
+        print(type(now))
         events_2days = service.events().list(
             calendarId='primary', timeMin=now, timeMax=EOD_tmrw,
             singleEvents=True,
@@ -209,8 +216,10 @@ class FocusBloomCal:
             print("No upcoming event to reschedule.")
             return False
         
-        ''' The event to reschedule and its key info '''
-        enext = event_2days[0]
+        ''' 
+        The event to reschedule and its key info 
+        '''
+        enext = events_2days[0]
         next_start = enext['start'].get('dateTime', enext['start'].get('date'))
         next_end = enext['end'].get('dateTime', enext['end'].get('date'))
         next_dur = next_start - next_end    # Should be a timedelta 
@@ -221,16 +230,16 @@ class FocusBloomCal:
         for i in range (1, event_count):
             ''' A future event and its end time '''
             e = events_2days[i] 
-            end = event['end'].get('dateTime', event['end'].get('date'))
+            end = e['end'].get('dateTime', e['end'].get('date'))
             ''' The tentative new start and end times of the 
                 event being rescheduled '''
             resched_start = end + datetime.timedelta(minutes=break_mins)
             resched_end = resched_start + next_dur
             ''' Test if we are free during new time '''
-            if (self.free_between(start, end) 
+            if (self.free_between(resched_start, resched_end) 
                 and resched_end <= self.work_time_end):
                 ''' Reschedule, and cancel original ''' 
-                create_event(service, next_name, 
+                self.create_event(service, next_name, 
                                 resched_start, resched_end)
                 service.events().delete(
                     calendarId='primary', 
@@ -271,9 +280,13 @@ def main():
     list_parser = subparsers.add_parser('list', help='List upcoming events')
     list_parser.add_argument('--max_results', type=int, default=10, help='Maximum number of events to list')
 
+    #Reschedule breaktime
+    breaktime_parser = subparsers.add_parser('reschedule', help="Reschedule task")
+    breaktime_parser.add_argument('break_mins', type=int, help="Breaktime duration")
 
     subparsers.add_parser('fetch', help='fetch events testing')
     subparsers.add_parser('conflict', help='schedule conflict testing')
+
     args = parser.parse_args()
 
     # Initalize object
@@ -293,6 +306,8 @@ def main():
             print("Conflict found!")
         else:
             print("No schedule conflicts!")
+    elif args.command == "reschedule":
+        user_calendar.reschedule_next_event(args.break_mins)
     else:
         parser.print_help()
         # response = input()
