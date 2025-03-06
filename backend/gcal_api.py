@@ -24,7 +24,7 @@ class FocusBloomCal:
         self.work_time_end = datetime.datetime.strptime(work_time_end, "%H:%M").time()
         self.service = self.authenticate_google_calendar()
         page_token = None
-        # self.event = self.fetch_events() # list of existing events.
+        self.events = self.fetch_events() # list of existing events.
 
     # make sure the web app is connected to google calendar
     def authenticate_google_calendar(self):
@@ -143,7 +143,7 @@ class FocusBloomCal:
                         start_time = end_time + datetime.timedelta(hours=1)  # Add break between sessions
                     end_time = start_time + datetime.timedelta(minutes=duration)
                     scheduled_event = (start_time, end_time)
-                    is_conflict = self.is_schedule_conflict(self.fetch_events(), scheduled_event)
+                    is_conflict = self.is_schedule_conflict(self.events, scheduled_event)
                     while (is_conflict and end_time.time() <= self.work_time_end):
                         print("Conflict found! Scheduling next available slot.")
                         start_time = start_time + datetime.timedelta(hours=1)  # Add break between sessions
@@ -151,7 +151,7 @@ class FocusBloomCal:
                         print(f"New start time: {start_time}")
                         print(f"New end time: {end_time}")
                         scheduled_event = (start_time, end_time)
-                        is_conflict = self.is_schedule_conflict(self.fetch_events(), scheduled_event)
+                        is_conflict = self.is_schedule_conflict(self.events, scheduled_event)
                     else:
                         print("No schedule conflicts!")
                         # Check if the session fits within working hours
