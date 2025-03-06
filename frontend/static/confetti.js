@@ -1,6 +1,6 @@
-import os
-from flask import Flask
+// import os
+// from flask import Flask
 
-app = Flask(__name__, static_folder="frontend")
+// app = Flask(__name__, static_folder="frontend")
 
-import Confetti from '/react-dom-confetti-master/src/confetti.js';
+// import Confetti from '/react-dom-confetti-master/src/confetti.js';

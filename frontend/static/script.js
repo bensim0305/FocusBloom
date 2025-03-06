@@ -94,7 +94,7 @@ function skipTask() {
     // Update UI elements
     document.getElementById("normalScreen").style.opacity = "1";
     document.getElementById("checkInText").style.visibility = "hidden";
-    document.getElementById("greenButton").innerHTML = "Finished Task";
+    document.getElementById("greenButton").innerHTML = "Finish Task";
     document.getElementById("greenButton").onclick = finishTask;
 
     // Load the next task
@@ -107,37 +107,37 @@ function finishTask() {
     music.play();
 
     // Send the updated task list to the backend to update tasks.json
-    deleteTask(index);
+    // deleteTask(index);
 
     // Move to the next task
-    index = index % tasks.length;  // Ensure index is within bounds
-    next = (next + 1) % tasks.length;
+    index = (index + 1) % sampleTasks.length;
+    next = (next + 1) % sampleTasks.length;
 
     loadNextTask();
 }
 
-function deleteTask(index) {
-    fetch(`/delete_task?index=${index}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-    })
-        .then(response => response.json())
-        .then(data => {
-            // Handle response from the server
-            if (data.success) {
-                console.log('Removed event');
-                loadNextTask();
-                tasks.splice(index, 1);
-            } else {
-                console.error('Failed to remove event');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-}
+// function deleteTask(index) {
+//     fetch(`/delete_task?index=${index}`, {
+//         method: 'DELETE',
+//         headers: {
+//             'Content-Type': 'application/json'
+//         },
+//     })
+//         .then(response => response.json())
+//         .then(data => {
+//             // Handle response from the server
+//             if (data.success) {
+//                 console.log('Removed event');
+//                 loadNextTask();
+//                 tasks.splice(index, 1);
+//             } else {
+//                 console.error('Failed to remove event');
+//             }
+//         })
+//         .catch(error => {
+//             console.error('Error:', error);
+//         });
+// }
 
 
 function workTimePrompt() {
