@@ -1,19 +1,83 @@
+* {
+    font-family: "Nunito", sans-serif;
+    user-select: none;
+    -khtml-user-select: none;
+    -o-user-select: none;
+    -moz-user-select: -moz-none;
+    -webkit-user-select: none;
+}
+
 body {
-    font-family: Arial, sans-serif;
     margin: 40px;
-    background-color: #f4f4f9;
-    color: #333;
+    overflow: hidden;
+    background-color: thistle;
+}
+
+#normalScreen {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    text-align: center;
+    transform: translate(-50%, -50%);
+    visibility: visible;
+}
+
+#checkInText {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    text-align: center;
+    transform: translate(-50%, -50%);
+    visibility: hidden;
+}
+
+#greenButton {
+    position: absolute;
+    bottom: 5%;
+    left: 33%;
+}
+
+#redButton {
+    position: absolute;
+    bottom: 5%;
+    right: 33%;
+}
+
+ul {
+    list-style-type: none;
+}
+
+li span {
+    display: inline-block;
+    width: 200px;
 }
 
 button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 14px 20px;
-    margin: 8px 0;
-    border: none;
+    height: 30px;
+    border: 1px solid #5d544b;
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 20px;
+    color: #5D544B;
+    background-color: #ECE8C6;
+    vertical-align: middle;
+    margin: 8px;
     cursor: pointer;
 }
 
 button:hover {
     background-color: #45a049;
+}
+
+#nextTaskHeader {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+}
+
+#nextTaskText {
+    position: absolute;
+    top: 5%;
+    right: 5%;
+    text-align: right;
 }
