@@ -282,9 +282,19 @@ class FocusBloomCal:
             e = events_2days[i] 
             end = datetime.datetime.fromisoformat(e['end'].get('dateTime', e['end'].get('date')))
             #tentative new start and end times to reschedule
+
             resched_start = end + datetime.timedelta(minutes=break_mins)
+            if resched_start.time() < self.work_time_start:
+                resched_start = datetime.combine(resched_start.date(), self.work_time_start, tzinfo=ZoneInfo("America/Chicago"))
+
             resched_end = resched_start + next_dur
-            
+
+            #move to next available workday if busy
+            if resched_end.time() > self.work_time_end:
+                next_day = resched_start.date() + datetime.timedelta(days=1)
+                resched_start = datetime.datetime.combine(next_day, self.work_time_start, tzinfo=ZoneInfo("America/Chicago"))
+                resched_end = resched_start + next_dur
+
             #checking if free during new time
             if (self.free_between(resched_start.isoformat(), resched_end.isoformat()) 
                 and resched_end <= datetime.datetime.combine(resched_end.date(), self.work_time_end).replace(tzinfo=ZoneInfo("America/Chicago"))):
