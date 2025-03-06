@@ -84,12 +84,36 @@ button:hover {
 
 #focusMode {
     position: absolute;
-    top: 40%;
+    top: 50%;
     left: 40%;
+    transform: translate(-50%, -50%);
 }
 
 #tasksMode {
     position: absolute;
-    top: 40%;
+    top: 50%;
     left: 60%;
+    transform: translate(-50%, -50%);
+}
+
+.container {
+    position: absolute;
+    padding: 5%;
+    overflow: auto;
+    border: 1px solid #5d544b;
+    border-radius: 10px;
+}
+
+#taskTableDiv {
+    top: 10%;
+    left: 10%;
+    width: 25%;
+    height: 50%;
+}
+
+#createTaskDiv {
+    top: 10%;
+    right: 10%;
+    width: 25%;
+    height: 50%;
 }
