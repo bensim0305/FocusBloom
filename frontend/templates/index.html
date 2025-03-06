@@ -1,14 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>FocusBloom</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 </head>
+
 <body>
-    <h1>Welcome to FocusBloom!</h1>
-    <button onclick="loadCalendarEvents()">Load Calendar Events</button>
+    <p id="OpeningText" hidden>Hi! Welcome to FocusBloom. Now organize your life dummy!</p>
+
     <div id="events"></div>
-    <script src="/static/js/script.js"></script>
+
+    <h3 id="nextTaskHeader">Next Task:</h3>
+    <h3 id="nextTaskText">Review key concepts for biology midterm</h3>
+
+    <div id="normalScreen">
+        <h1 id="currentTaskHeader">Current Task:</h1>
+        <h1 id="currentTaskText">Peer edit Fred's SOSC essay</h1>
+
+        <p id="nextCheckInText">Next Check-In: 30 minutes (seconds)</p>
+    </div>
+
+    <h2 class="checkIn" id="checkInText">Would you like to continue working on your task?</h2>
+
+    <a href=# id=test><button id="greenButton">Test</button></a>
+    <!-- <button id="greenButton" onclick="finishTask()">Finish task</button> -->
+    <button id="redButton" onclick="skipTask()">Skip task</button>
+    
+    <button onclick="loadCalendarEvents()">Load Calendar Events</button>
+    <script src="/static/script.js"></script>
 </body>
+
 </html>
