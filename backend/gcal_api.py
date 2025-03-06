@@ -41,6 +41,7 @@ class FocusBloomCal:
     def fetch_events(self):
         """ Gather existing google calendar events"""
         events = {}
+        unique_event_titles = {} # to get entries with identical names
         page_token = None
         while True:
             try:
@@ -48,7 +49,12 @@ class FocusBloomCal:
                 calendarId='primary', pageToken=page_token).execute()
                 for event in events_result.get('items', []):
                     event_title = event.get('summary')
-                    events[event_title] = event  # Store the entire event as the value
+                    if event_title not in unique_event_titles:
+                        unique_event_titles[event_title] = 1
+                        events[event_title + f' ({unique_event_titles[event_title]})'] = event  # Store the entire event as the value
+                    else:
+                        unique_event_titles[event_title] += 1
+                        events[event_title + f' ({unique_event_titles[event_title]})'] = event
                     page_token = events_result.get('nextPageToken')
                 if not page_token:
                         break
@@ -111,16 +117,24 @@ class FocusBloomCal:
                 # Schedule up to 2 sessions per day
                 for session in range(2):
                     # Calculate start and end times for the session
-                    start_time = datetime.datetime.combine(
-                        current_date,
-                        self.work_time_start
-                    ) + datetime.timedelta(hours=session * (duration / 60 + 1))  # Add break between sessions
+                    if session == 0:
+                        start_time = datetime.datetime.combine(
+                            current_date,
+                            self.work_time_start
+                        ) + datetime.timedelta(hours=session * (duration / 60 + 1))  # Add break between sessions
+                    else:
+                        start_time = end_time + datetime.timedelta(hours=1)  # Add break between sessions
                     end_time = start_time + datetime.timedelta(minutes=duration)
                     scheduled_event = (start_time, end_time)
                     is_conflict = self.is_schedule_conflict(self.fetch_events(), scheduled_event)
-                    if (is_conflict):
+                    while (is_conflict and end_time.time() <= self.work_time_end):
                         print("Conflict found! Scheduling next available slot.")
-
+                        start_time = start_time + datetime.timedelta(hours=1)  # Add break between sessions
+                        end_time = start_time + datetime.timedelta(minutes=duration)
+                        print(f"New start time: {start_time}")
+                        print(f"New end time: {end_time}")
+                        scheduled_event = (start_time, end_time)
+                        is_conflict = self.is_schedule_conflict(self.fetch_events(), scheduled_event)
                     else:
                         print("No schedule conflicts!")
                         # Check if the session fits within working hours
