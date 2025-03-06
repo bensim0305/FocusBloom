@@ -1,5 +1,3 @@
-// import { gsap } from "gsap"
-
 function loadCalendarEvents() {
     fetch('/api/events')
         .then(response => response.json())
@@ -17,7 +15,6 @@ function loadCalendarEvents() {
         })
         .catch(error => console.error('Error fetching events:', error));
 }
-
 
 let checkinTime = 30;
 
@@ -125,79 +122,6 @@ function finishTask() {
 
     restartTimer();
 }
-
-let tasksModeActivated = false;
-let focusModeActivated = false;
-
-document.getElementById('focusMode').addEventListener('click', () => {
-    if (!focusModeActivated) {
-        gsap.to('#tasksMode', {
-            duration: .75,
-            opacity: 0,
-            ease: 'power2.out'
-        })
-        gsap.to('#focusMode', {
-            duration: .75,
-            top: '2%',
-            left: '2%',
-            ease: 'power2.out'
-        })
-        focusModeActivated = true
-        document.getElementById('tasksMode').hidden = true
-        document.getElementById('focusMode').textContent = "EXIT"
-    }
-    else {
-        document.getElementById('tasksMode').hidden = false
-        document.getElementById('focusMode').textContent = "FOCUS"
-        gsap.to('#tasksMode', {
-            duration: .75,
-            opacity: 1,
-            ease: 'power2.out'
-        })
-        gsap.to('#focusMode', {
-            duration: .75,
-            top: '40%',
-            left: '40%',
-            ease: 'power2.out'
-        })
-        focusModeActivated = false
-    }
-})
-
-document.getElementById('tasksMode').addEventListener('click', () => {
-    if (!tasksModeActivated) {
-        gsap.to('#focusMode', {
-            duration: .75,
-            opacity: 0,
-            ease: 'power2.out'
-        })
-        gsap.to('#tasksMode', {
-            duration: .75,
-            top: '2%',
-            left: '2%',
-            ease: 'power2.out'
-        })
-        tasksModeActivated = true
-        document.getElementById('focusMode').hidden = true
-        document.getElementById('tasksMode').textContent = "EXIT"
-    }
-    else {
-        document.getElementById('focusMode').hidden = false
-        document.getElementById('tasksMode').textContent = "TASKS"
-        gsap.to('#focusMode', {
-            duration: .75,
-            opacity: 1,
-            ease: 'power2.out'
-        })
-        gsap.to('#tasksMode', {
-            duration: .75,
-            top: '40%',
-            left: '60%',
-            ease: 'power2.out'
-        })
-        tasksModeActivated = false
-    }
-})
 
 // Function to load tasks dynamically from the server
 function loadTasks() {

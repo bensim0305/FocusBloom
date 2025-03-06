@@ -15,6 +15,8 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 class FocusBloomCal:
     """Class to hold functions to be used alongside FocusBloom app."""
     
+    # initialize the object with what time we are starting work, and what time we are ending
+    # work. 
     def __init__(self, work_time_start="09:00", work_time_end="17:00"):
         """Initialize with preferred working hours for weekdays."""
         self.work_time_start = datetime.datetime.strptime(work_time_start, "%H:%M").time()
@@ -23,7 +25,7 @@ class FocusBloomCal:
         page_token = None
         # self.event = self.fetch_events() # list of existing events.
 
-        
+    # make sure the web app is connected to google calendar
     def authenticate_google_calendar(self):
         """Authenticate and return the Google Calendar API service."""
         creds = None
@@ -40,6 +42,7 @@ class FocusBloomCal:
         return build('calendar', 'v3', credentials=creds)
     
 
+    # fetch the events already in google calendar-- call these OBLIGATIONS
     def fetch_events(self):
         events = {}
         unique_event_titles = {}  # to handle entries with identical names
@@ -63,14 +66,15 @@ class FocusBloomCal:
                 print(f"An error occurred: {e}")
                 break
 
-        # Overwrite events.json with the fetched events (assumes events.json is in the same directory as this function)
-        events_path = os.path.join(os.path.dirname(__file__), 'events.json')  # Using the current directory
+        # Overwrite obligations.json with the fetched events
+        events_path = os.path.join(os.path.dirname(__file__), 'obligations.json')
+
         try:
             with open(events_path, 'w') as file:
                 json.dump(events, file, indent=4)  # Writing events dictionary to the file with proper indentation
-            print(f"events.json has been updated with {len(events)} events.")
+            print(f"obligations.json has been updated with {len(events)} events.")
         except Exception as e:
-            print(f"Error writing to events.json: {e}")
+            print(f"Error writing to obligations.json: {e}")
             
         return events
 

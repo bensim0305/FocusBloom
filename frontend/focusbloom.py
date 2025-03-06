@@ -26,7 +26,7 @@ def create_event():
 
 @app.route('/api/events', methods=['GET'])
 def get_events():
-    json_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend', 'events.json'))
+    json_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend', 'obligations.json'))
     
     try:
         with open(json_path, 'r') as file:
@@ -40,6 +40,10 @@ def get_events():
 def get_tasks():
     # Define the path to the tasks.json file
     json_path = os.path.join(os.path.dirname(__file__), 'tasks.json')
+
+    if not os.path.exists(json_path):
+        with open(json_path, 'w') as file:
+            json.dump([], file)  # Initialize with an empty list
 
     try:
         with open(json_path, 'r') as file:
