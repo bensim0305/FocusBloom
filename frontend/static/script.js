@@ -37,6 +37,8 @@ let checkinTime = 1800; // time between check-ins in seconds, default is 30 minu
 let timeout = null;
 // let timeout = setTimeout(heyListen, checkinTime * 1000);
 
+let tasks = []; // Store tasks globally for sorting
+
 // FOCUS SCREEN FUNCTIONS //////////////////////////////////////////////////////
 
 function heyListen() {
@@ -78,21 +80,25 @@ function skipTask() {
     var music = new Audio('/static/skipped-task.mp3');
     music.play();
 
-    document.getElementById("normalScreen").style.opacity = "1";
-    document.getElementById("checkInText").style.visibility = "hidden";
+    // Make the current task rescheduled and move it to the end
+    let skippedTask = sampleTasks[index];
+    skippedTask.status = "Rescheduled";  // Set the task status to "Rescheduled"
 
-    document.getElementById("greenButton").innerHTML = "Finished Task";
-    document.getElementById("greenButton").onclick = finishTask;
+    // Move the task to the end of the tasks array
+    sampleTasks.push(sampleTasks.splice(index, 1)[0]);
 
+    // Update the index to point to the next task
     index = (index + 1) % sampleTasks.length;
     next = (next + 1) % sampleTasks.length;
 
-    document.getElementById("currentTaskText").innerText = sampleTasks[index];
-    document.getElementById("nextTaskText").innerText = sampleTasks[next];
+    // Update UI elements
+    document.getElementById("normalScreen").style.opacity = "1";
+    document.getElementById("checkInText").style.visibility = "hidden";
+    document.getElementById("greenButton").innerHTML = "Finished Task";
+    document.getElementById("greenButton").onclick = finishTask;
 
-    document.body.style.backgroundColor = bgColors[Math.floor(Math.random() * bgColors.length)];
-
-    restartTimer();
+    // Load the next task
+    loadNextTask();
 }
 
 function finishTask() {
@@ -100,16 +106,39 @@ function finishTask() {
     var music = new Audio('/static/passed-task.mp3');
     music.play();
 
-    index = (index + 1) % sampleTasks.length;
-    next = (next + 1) % sampleTasks.length;
+    // Send the updated task list to the backend to update tasks.json
+    deleteTask(index);
 
-    document.getElementById("currentTaskText").innerText = sampleTasks[index];
-    document.getElementById("nextTaskText").innerText = sampleTasks[next];
+    // Move to the next task
+    index = index % tasks.length;  // Ensure index is within bounds
+    next = (next + 1) % tasks.length;
 
-    document.body.style.backgroundColor = bgColors[Math.floor(Math.random() * bgColors.length)];
-
-    restartTimer();
+    loadNextTask();
 }
+
+function deleteTask(index) {
+    fetch(`/delete_task?index=${index}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+    })
+        .then(response => response.json())
+        .then(data => {
+            // Handle response from the server
+            if (data.success) {
+                console.log('Removed event');
+                loadNextTask();
+                tasks.splice(index, 1);
+            } else {
+                console.error('Failed to remove event');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
 
 function workTimePrompt() {
     document.getElementById('endWorkDate').valueAsDate = new Date();
@@ -121,11 +150,11 @@ function workTimePrompt() {
 
             if (obligations.length > 0) {
                 eventStartTime = formatDateTime(obligations[0].start.dateTime);
-                document.getElementById('referenceEndTime').textContent = "For reference, " + 
-                "your next obligation starts at " + eventStartTime;
+                document.getElementById('referenceEndTime').textContent = "For reference, " +
+                    "your next obligation starts at " + eventStartTime;
             } else {
-                document.getElementById('referenceEndTime').textContent = 
-                "For reference, you have no upcoming obligations.";
+                document.getElementById('referenceEndTime').textContent =
+                    "For reference, you have no upcoming obligations.";
             }
         })
         .catch(error => console.error("Error loading obligations:", error));
@@ -133,6 +162,7 @@ function workTimePrompt() {
 
 function beginFocusMode() {
     let endWorkTime = document.getElementById('endWorkTime').value;
+    let endWorkDate = document.getElementById('endWorkDate').value;
 
     if (!endWorkTime) {
         document.getElementById('timePromptWarning').hidden = false;
@@ -142,9 +172,100 @@ function beginFocusMode() {
         document.getElementById('workTimePrompt').hidden = true;
         document.getElementById('mainFocusMode').hidden = false;
         restartTimer();
+
+        // Get current time as the start time
+        let startTime = new Date().toISOString(); // ISO string of the current time
+
+        // Combine selected date with end work time
+        let endDateTime = new Date(`${endWorkDate}T${endWorkTime}:00`).toISOString(); // Set end time based on form input
+
+        // Call the function to schedule the task
+        let taskName = "Focus Session"; // You can dynamically set the task name based on your need
+        let duration = calculateDuration(startTime, endDateTime); // Calculate the duration between start and end times
+
+        // Schedule the task (API call to backend)
+        // await scheduleTask(taskName, duration, endDateTime);
     }
+
+    loadNextTask();
 }
 
+async function scheduleTask(taskName, duration, dueDate) {
+    const response = await fetch(`${API_URL}/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_name: taskName, duration: duration, due_date: dueDate })
+    });
+
+    const data = await response.json(); // Wait for the JSON response
+    console.log(data.message);
+}
+
+function calculateDuration(startTime, endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const duration = (end - start) / 1000 / 60; // Convert to minutes
+    return duration;
+}
+
+// Call the create_event function in Python backend to create the calendar event
+function createEvent(service, taskName, startTime, endTime) {
+    fetch('/create_event', {  // Assuming the backend is listening to this endpoint
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            task_name: taskName,
+            start_time: startTime,
+            end_time: endTime
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Event created:", data);
+        })
+        .catch(error => {
+            console.error("Error creating event:", error);
+        });
+}
+
+function loadNextTask() {
+    try {
+        // Sort tasks by priority (lowest number = highest priority) and then by earliest deadline
+        tasks.sort((taskA, taskB) => {
+            // First, compare by priority
+            if (taskA.priority !== taskB.priority) {
+                return taskA.priority - taskB.priority; // Lower priority is more urgent
+            }
+            // If priorities are the same, compare by deadline
+            return new Date(taskA.deadline) - new Date(taskB.deadline); // Earliest deadline first
+        });
+
+        // Now tasks[0] should be the most urgent task
+        const currentTask = tasks[index];
+        const nextTask = tasks[index + 1];
+
+        // Update the HTML with the task details
+        document.getElementById('nextTaskText').innerText = nextTask.title; // Task name
+        document.getElementById('currentTaskText').innerText = currentTask.title; // You can also set this as the current task
+        document.getElementById('nextCheckInText').innerText = `Next Check-In: ${currentTask.checkin} minutes`; // Assuming 'checkin' is in minutes
+        document.body.style.backgroundColor = currentTask.color;
+
+        // Decrement the time every minute
+        let checkInTime = currentTask.checkin;
+        const checkInInterval = setInterval(() => {
+            checkInTime--; // Decrement the check-in time by 1 minute
+            document.getElementById('nextCheckInText').innerText = `Next Check-In: ${checkInTime} minutes`;
+
+            // If the time reaches 0, stop the countdown
+            if (checkInTime <= 0) {
+                clearInterval(checkInInterval);
+            }
+        }, 60000); // 60000 ms = 1 minute
+
+    } catch (error) {
+        console.error("Error loading tasks:", error);
+    }
+}
 
 // TASKS SCREEN FUNCTIONS //////////////////////////////////////////////////////
 
@@ -163,7 +284,6 @@ function showTable(tableType) {
     }
 }
 
-let tasks = []; // Store tasks globally for sorting
 let sortDirections = { priority: true, title: true, deadline: true }; // Ascending by default
 let currentSort = "priority"; // Default column to sort by
 
@@ -498,35 +618,37 @@ function saveTask() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(tasks)
             })
-            .then(() => {
-                loadTasks();
-                document.getElementById("createTaskHeader").textContent = "Click a task to edit";
-                document.getElementById("taskForm").hidden = true;
-                document.getElementById("saveExistingTaskBtn").hidden = true;
-                document.getElementById("submitNewTaskBtn").hidden = true;
-            })
-            .catch(error => console.error("Error saving task:", error));
+                .then(() => {
+                    loadTasks();
+                    document.getElementById("createTaskHeader").textContent = "Click a task to edit";
+                    document.getElementById("taskForm").hidden = true;
+                    document.getElementById("saveExistingTaskBtn").hidden = true;
+                    document.getElementById("submitNewTaskBtn").hidden = true;
+                })
+                .catch(error => console.error("Error saving task:", error));
         });
+    loadTasks();
+    makeTasksClickable(true);
 }
 
 function clearTasks() {
     fetch('/delete_all_tasks', {  // You need to create an endpoint for deleting all tasks
         method: 'DELETE',
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert("All tasks cleared!");
-            // Optionally, re-render the task table if needed
-            renderTaskTable();
-        } else {
-            alert("Failed to clear tasks.");
-        }
-    })
-    .catch(error => {
-        console.error("Error clearing tasks:", error);
-        alert("An error occurred while clearing tasks.");
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("All tasks cleared!");
+                // Optionally, re-render the task table if needed
+                renderTaskTable();
+            } else {
+                alert("Failed to clear tasks.");
+            }
+        })
+        .catch(error => {
+            console.error("Error clearing tasks:", error);
+            alert("An error occurred while clearing tasks.");
+        });
 
     loadTasks();
 }

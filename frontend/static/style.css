@@ -115,13 +115,14 @@ button:hover {
 #nextTaskHeader {
     position: absolute;
     top: 5%;
-    left: 5%;
+    right: 5%;
+    text-align: right;
 }
 
 #nextTaskText {
     position: absolute;
     top: 7%;
-    left: 5%;
+    right: 5%;
     text-align: right;
 }
 

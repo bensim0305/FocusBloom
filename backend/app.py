@@ -159,6 +159,38 @@ def delete_all_tasks():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+# Route to delete a specific task by index
+@app.route('/delete_task', methods=['DELETE'])
+def delete_task():
+    try:
+        # Get the index from the request parameters
+        index = int(request.args.get('index'))
+
+        # Path to the tasks.json file
+        json_path = os.path.join(os.path.dirname(__file__), 'tasks.json')
+
+        # Read the current tasks from tasks.json
+        with open(json_path, 'r') as file:
+            tasks = json.load(file)
+
+        # Check if the index is valid
+        if index < 0 or index >= len(tasks):
+            return jsonify({"error": "Invalid index"}), 400
+
+        # Remove the task at the given index
+        removed_task = tasks.pop(index)
+
+        # Save the updated task list back to tasks.json
+        with open(json_path, 'w') as file:
+            json.dump(tasks, file, indent=2)
+
+        # Return a success response with the removed task data
+        return jsonify({"success": True, "removed_task": removed_task})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
