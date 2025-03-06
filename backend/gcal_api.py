@@ -7,6 +7,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+import json
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -40,14 +41,13 @@ class FocusBloomCal:
     
 
     def fetch_events(self):
-        """ Gather existing google calendar events"""
         events = {}
-        unique_event_titles = {} # to get entries with identical names
+        unique_event_titles = {}  # to handle entries with identical names
         page_token = None
         while True:
             try:
                 events_result = self.service.events().list(
-                calendarId='primary', pageToken=page_token).execute()
+                    calendarId='primary', pageToken=page_token).execute()
                 for event in events_result.get('items', []):
                     event_title = event.get('summary')
                     if event_title not in unique_event_titles:
@@ -58,10 +58,20 @@ class FocusBloomCal:
                         events[event_title + f' ({unique_event_titles[event_title]})'] = event
                     page_token = events_result.get('nextPageToken')
                 if not page_token:
-                        break
+                    break
             except Exception as e:
                 print(f"An error occurred: {e}")
                 break
+
+        # Overwrite events.json with the fetched events (assumes events.json is in the same directory as this function)
+        events_path = os.path.join(os.path.dirname(__file__), 'events.json')  # Using the current directory
+        try:
+            with open(events_path, 'w') as file:
+                json.dump(events, file, indent=4)  # Writing events dictionary to the file with proper indentation
+            print(f"events.json has been updated with {len(events)} events.")
+        except Exception as e:
+            print(f"Error writing to events.json: {e}")
+            
         return events
 
 

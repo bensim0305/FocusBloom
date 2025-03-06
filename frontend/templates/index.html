@@ -6,6 +6,7 @@
     <title>FocusBloom</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 </head>
 
 <body>
@@ -13,23 +14,43 @@
 
     <div id="events"></div>
 
-    <h3 id="nextTaskHeader">Next Task:</h3>
-    <h3 id="nextTaskText">Review key concepts for biology midterm</h3>
+    <h3 id="nextTaskHeader" hidden>Next Task:</h3>
+    <h3 id="nextTaskText" hidden>Review key concepts for biology midterm</h3>
 
-    <div id="normalScreen">
+    <div id="normalScreen" hidden>
         <h1 id="currentTaskHeader">Current Task:</h1>
         <h1 id="currentTaskText">Peer edit Fred's SOSC essay</h1>
 
         <p id="nextCheckInText">Next Check-In: 30 minutes (seconds)</p>
     </div>
 
-    <h2 class="checkIn" id="checkInText">Would you like to continue working on your task?</h2>
+    <h2 class="checkIn" id="checkInText" hidden>Would you like to continue working on your task?</h2>
 
-    <a href=# id=test><button id="greenButton">Test</button></a>
-    <!-- <button id="greenButton" onclick="finishTask()">Finish task</button> -->
-    <button id="redButton" onclick="skipTask()">Skip task</button>
-    
-    <button onclick="loadCalendarEvents()">Load Calendar Events</button>
+    <button id="greenButton" onclick="finishTask()" hidden>Finish task</button>
+    <button id="redButton" onclick="skipTask()" hidden>Skip task</button>
+
+    <button onclick="loadCalendarEvents()" hidden>Load Calendar Events</button>
+
+    <button id="focusMode" onclick="focusModeActivate()" hidden>FOCUS</button>
+    <button id="tasksMode" onclick="tasksModeActivate()" hidden>TASKS</button>
+
+    <div id="taskModeScreen">
+        <h1 id="currentTaskHeader">Tasks:</h1>
+
+        <table id="taskTable" border="1">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="taskTableBody">
+                <!-- Table rows will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+
     <script src="/static/script.js"></script>
 </body>
 
