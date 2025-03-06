@@ -15,32 +15,54 @@
     <h1 style="position: absolute; top: 30%; left: 50%; 
     text-align: center; transform: translate(-50%, -50%);" id="welcomeTitle">
         Welcome to FocusBloom!</h1>
-    <button id="focusMode">FOCUS</button>
+    <button id="focusMode" onclick="workTimePrompt()">FOCUS</button>
     <button id="tasksMode">TASKS</button>
 
     <!-- FOCUS MODE ----------------------------------------------------------->
 
     <div id="focusModeScreen" hidden style="opacity: 0;">
-        <h3 id="nextTaskHeader">Next Task:</h3>
-        <h3 id="nextTaskText">Review key concepts for biology midterm</h3>
+        <div id="workTimePrompt">
+            <div style="position: absolute; top: 30%; left: 50%; 
+                text-align: center; transform: translate(-50%, -50%);" 
+                id="workTimePromptHeader">
+                <h2> Ready to get some tasks done? When do you plan on stopping? If you ever 
+                    need to stop earlier, simply press 'EXIT'.</h2><br>
+                <h3 id="referenceEndTime">For reference, your next obligation starts at ___</h3>
+            </div>
 
-        <div id="normalScreen">
-            <h1 id="currentTaskHeader">Current Task:</h1>
-            <h1 id="currentTaskText">Peer edit Fred's SOSC essay</h1>
-
-            <p id="nextCheckInText">Next Check-In: 30 minutes (seconds)</p>
+            <form id="timePrompt" style="position: absolute; top: 50%; left: 50%; 
+            text-align: center; transform: translateX(-50%);">
+                <input type="date" id="endWorkDate" name="endWorkDate">
+                <input type="time" id="endWorkTime" name="endWorkTime"><br><br>
+                <label for="startWorkTime" id="timePromptWarning" hidden>Must enter time!</label><br>
+                <button type="button" id="startWorkTime" name="startWorkTime" 
+                    onclick="beginFocusMode()">Start working!</button>
+            </form>
         </div>
 
-        <h2 class="checkIn" id="checkInText">Would you like to continue working on your task?</h2>
+        <div id="mainFocusMode" hidden>
+            <h3 id="nextTaskHeader">Next Task:</h3>
+            <h3 id="nextTaskText">Review key concepts for biology midterm</h3>
 
-        <button id="greenButton" onclick="finishTask()">Finish task</button>
-        <button id="redButton" onclick="skipTask()">Skip task</button>
+            <div id="normalScreen">
+                <h1 id="currentTaskHeader">Current Task:</h1>
+                <h1 id="currentTaskText">Peer edit Fred's SOSC essay</h1>
 
-        <button onclick="scheduleTask('Math Homework', 120, '2025-03-06')">Schedule Task</button>
-        <button onclick="listEvents()">List Events</button>
-        <button onclick="fetchEvents()">Fetch Events</button>
-        <button onclick="checkScheduleConflict('2025-03-05 10:30:00', '2025-03-05 15:30:00')">Check Conflict</button>
-        <button onclick="rescheduleBreak(30)">Reschedule Break</button>
+                <p id="nextCheckInText">Next Check-In: 30 minutes (seconds)</p>
+            </div>
+
+            <h2 class="checkIn" id="checkInText">Would you like to continue working on your task?</h2>
+
+            <button id="greenButton" onclick="finishTask()">Finish task</button>
+            <button id="redButton" onclick="skipTask()">Skip task</button>
+
+            <button onclick="scheduleTask('Math Homework', 120, '2025-03-06')">Schedule Task</button>
+            <button onclick="listEvents()">List Events</button>
+            <button onclick="fetchEvents()">Fetch Events</button>
+            <button onclick="checkScheduleConflict('2025-03-05 10:30:00', '2025-03-05 15:30:00')">Check
+                Conflict</button>
+            <button onclick="rescheduleBreak(30)">Reschedule Break</button>
+        </div>
     </div>
 
     <!-- TASKS MODE ----------------------------------------------------------->
@@ -51,15 +73,20 @@
             <div class="tabs">
                 <button class="tab-button" id="tasksTab" onclick="showTable('tasks')">Tasks</button>
                 <button class="tab-button" id="obligationsTab" onclick="showTable('obligations')">Obligations</button>
+                <div style="display: flex; margin-left: auto;">
+                    <button class="tab-button" id="editTasks" onclick="editTasks()">Edit Tasks</button>
+                    <button class="tab-button" id="clearTasks" onclick="clearTasks()">Clear Tasks</button>
+                </div>
             </div>
-        
+
             <!-- TASKS TABLE -------------------------------------------------->
             <div id="tasksTable" class="table-container">
                 <table id="taskTable" border="1">
                     <thead>
                         <tr>
-                            <th>Task</th>
-                            <th>Due Date</th>
+                            <th onclick="sortTable('priority')">Priority <span id="priority-arrow">&#8593;</span></th>
+                            <th onclick="sortTable('title')">Task <span id="title-arrow"></span></th>
+                            <th onclick="sortTable('deadline')">Deadline <span id="deadline-arrow"></span></th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -68,7 +95,7 @@
                     </tbody>
                 </table>
             </div>
-        
+
             <!-- OBLIGATIONS TABLE -------------------------------------------->
             <div id="obligationsTable" class="table-container" style="display:none;">
                 <table id="obligationTable" border="1">
@@ -87,13 +114,46 @@
         </div>
 
         <div class="container" id="createTaskDiv">
-            <h1>Create new task:</h1>
+            <h1 id="createTaskHeader">Create new task</h1>
 
-            <form>
+            <form id="taskForm">
+                <!-- Task Title -->
                 <label for="title">Task Title:</label><br>
-                <input type="text" id="title" name="title"><br>
-                <label for="lname">Start Time:</label><br>
-                <input type="text" id="lname" name="lname">
+                <input type="text" id="title" name="title" style="width: 100%;"><br><br>
+
+                <!-- Deadline with Date and Time Selector -->
+                <label for="deadline">Deadline Due:</label><br>
+                <input type="date" id="deadline" name="deadline">
+                <input type="time" id="time" name="time"><br><br>
+
+                <!-- Priority Slider (1 to 5) -->
+                <label for="priority">Urgency/Priority (1 = Most Urgent, 5 = Least):</label><br>
+                <input type="range" id="priority" name="priority" min="1" max="5" value="3"
+                    onchange="updatePriority()"><br>
+                <span id="priorityValue">Current Value: 3</span><br><br>
+
+                <!-- Work Block Duration (Time Dropdown) -->
+                <label for="block">How long do you want to work on this task in a sitting?</label><br>
+                <select id="block" name="block">
+                    <option value="30">30 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="90">1.5 hours</option>
+                    <option value="120">2 hours</option>
+                </select><br><br>
+
+                <!-- Progress Check-in Frequency -->
+                <label for="checkin">How long should the intervals that FocusBloom checks in on your progress
+                    be?</label><br>
+                <input type="number" id="checkin" name="checkin" min="1" step="1"><span> minutes</span><br><br>
+
+                <!-- Custom Task Color Picker -->
+                <label for="taskColor">Pick a task color (more pastel/light is better!):</label><br>
+                <input type="color" id="taskColor" name="taskColor" value="#ff0000"><br><br>
+
+                <!-- Submit Button -->
+                <label for="submitNewTaskBtn" id="createTaskWarning" hidden>Missing information!</label><br>
+                <button type="button" id="submitNewTaskBtn" onclick="createNewTask()">Submit</button>
+                <button type="button" id="saveExistingTaskBtn" onclick="saveTask()" hidden>Save</button>
             </form>
         </div>
 
