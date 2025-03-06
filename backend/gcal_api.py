@@ -167,6 +167,32 @@ class FocusBloomCal:
 
             # Move to the next day
             current_date += datetime.timedelta(days=1)
+    
+    def finish_task(self):
+        """
+        Finished the current task and clears it from the calendar 
+        """
+        service = self.service
+        current_date = datetime.datetime.now(tz=ZoneInfo("America/Chicago"))
+        time_min = current_date.isoformat()
+
+        events = self.service.events().list(
+                calendarId='primary',
+                timeMin=time_min,
+                maxResults=1,
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute().get('items', [])
+
+        if not events:
+            print("No current task to finish.")
+            return
+
+        # Delete the event
+        event = events[0]
+        event_id = event['id']
+        self.service.events().delete(calendarId='primary', eventId=event_id).execute()
+        print(f"Task '{event['summary']}' marked as finished and removed from the calendar.")
 
     def prompt_for_working_hours(self):
         """Prompt the user for their preferred working hours."""
@@ -366,6 +392,9 @@ def main():
     subparsers.add_parser('fetch', help='fetch events testing')
     subparsers.add_parser('conflict', help='schedule conflict testing')
 
+    #finish task
+    finish_parser = subparsers.add_parser("finish", help="Finish current task")
+
     args = parser.parse_args()
 
     # Initalize object
@@ -387,6 +416,8 @@ def main():
             print("No schedule conflicts!")
     elif args.command == "reschedule":
         user_calendar.reschedule_next_event(args.break_mins)
+    elif args.command == "finish":
+        user_calendar.finish_task()
     else:
         parser.print_help()
         # response = input()
