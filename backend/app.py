@@ -159,6 +159,18 @@ def delete_all_tasks():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# Route to finish a task
+@app.route("/finish_task", methods=["POST"])
+def finish_task():
+    tasks = request.json
+    fbcInstance.finish_task()
+
+    tasks_path = os.path.join(os.path.dirname(__file__), 'tasks.json')
+    with open(tasks_path, "w") as file:
+        json.dump(tasks, file, indent=4)
+    return jsonify({"message": "Tasks updated successfully!"}), 200
     
 
 # Route to delete a specific task by index

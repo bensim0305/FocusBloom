@@ -114,6 +114,28 @@ function finishTask() {
     next = (next + 1) % sampleTasks.length;
 
     loadNextTask();
+
+    fetch('/finish_task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(tasks => {
+        let eventStartTime = null;
+    
+        if (obligations.length > 0) {
+            eventStartTime = formatDateTime(obligations[0].start.dateTime);
+            document.getElementById('referenceEndTime').textContent = "For reference, " +
+                "your next obligation starts at " + eventStartTime;
+        } else {
+            document.getElementById('referenceEndTime').textContent =
+                "For reference, you have no upcoming obligations.";
+        }
+    })
+    .catch(error => console.error("Error loading obligations:", error));
 }
 
 // function deleteTask(index) {
