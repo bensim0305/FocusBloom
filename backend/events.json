@@ -1,0 +1,14 @@
+[
+    {
+        "summary": "Meeting with John",
+        "start": {
+            "dateTime": "2025-03-05T10:00:00"
+        }
+    },
+    {
+        "summary": "Lunch with Sarah",
+        "start": {
+            "dateTime": "2025-03-05T12:30:00"
+        }
+    }
+]

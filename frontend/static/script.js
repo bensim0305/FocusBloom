@@ -1,7 +1,12 @@
 function loadCalendarEvents() {
-    fetch('/api/events')  // Assuming you have set up an endpoint to fetch calendar events
+    fetch('/api/events')
         .then(response => response.json())
         .then(data => {
+            console.log("Fetched data:", data);  // Debugging step
+            if (!Array.isArray(data)) {
+                console.error("Error: Expected an array, but got:", data);
+                return;
+            }
             const eventsDiv = document.getElementById('events');
             eventsDiv.innerHTML = '';  // Clear previous events
             data.forEach(event => {
@@ -12,6 +17,7 @@ function loadCalendarEvents() {
         })
         .catch(error => console.error('Error fetching events:', error));
 }
+
 
 let checkinTime = 30;
 

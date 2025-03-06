@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import sys
+import os
+import json
 sys.path.insert(0, '../backend')
 import gcal_api  # Assuming your Google Calendar API code is in gcal_api.py
 
@@ -8,7 +10,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # You'll need to create an index.html file in a 'templates' folder
+    return render_template('index.html')
 
 
 @app.route('/create_event', methods=['POST'])
@@ -22,10 +24,22 @@ def create_event():
     return 'Event created!'
 
 
-@app.route('/background_process_test', methods=['POST'])
+@app.route('/api/events', methods=['GET'])
+def get_events():
+    json_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend', 'events.json'))
+    
+    try:
+        with open(json_path, 'r') as file:
+            events = json.load(file)  # Load JSON data from file
+        return jsonify(events)  # Send JSON response
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  # Handle errors
+
+
+@app.route('/background_process_test', methods=['GET', 'POST'])
 def background_process_test():
-    print ("Hello")
-    # return ("nothing")
+    print("Hello there")
+    return ("nothing")
 
 
 if __name__ == '__main__':
