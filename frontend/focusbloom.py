@@ -33,13 +33,20 @@ def get_events():
             events = json.load(file)  # Load JSON data from file
         return jsonify(events)  # Send JSON response
     except Exception as e:
-        return jsonify({"error": str(e)}), 500  # Handle errors
+        return jsonify({"error": str(e)}), 500
+    
 
+@app.route('/tasks')
+def get_tasks():
+    # Define the path to the tasks.json file
+    json_path = os.path.join(os.path.dirname(__file__), 'tasks.json')
 
-@app.route('/background_process_test', methods=['GET', 'POST'])
-def background_process_test():
-    print("Hello there")
-    return ("nothing")
+    try:
+        with open(json_path, 'r') as file:
+            tasks = json.load(file)
+        return jsonify(tasks)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

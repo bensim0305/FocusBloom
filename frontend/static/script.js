@@ -1,17 +1,17 @@
+// import { gsap } from "gsap"
+
 function loadCalendarEvents() {
     fetch('/api/events')
         .then(response => response.json())
         .then(data => {
             console.log("Fetched data:", data);  // Debugging step
-            if (!Array.isArray(data)) {
-                console.error("Error: Expected an array, but got:", data);
-                return;
-            }
+
+            // Iterate over the object instead of expecting an array
             const eventsDiv = document.getElementById('events');
             eventsDiv.innerHTML = '';  // Clear previous events
-            data.forEach(event => {
+            Object.entries(data).forEach(([eventTitle, event]) => {
                 const eventDiv = document.createElement('div');
-                eventDiv.textContent = `Event: ${event.summary} - Start: ${event.start.dateTime}`;
+                eventDiv.textContent = `Event: ${eventTitle} - Start: ${event.start.dateTime}`;
                 eventsDiv.appendChild(eventDiv);
             });
         })
@@ -126,13 +126,112 @@ function finishTask() {
     restartTimer();
 }
 
-$(function () {
-    $('a#test').on('click', function (e) {
-        e.preventDefault()
-        $.getJSON('/background_process_test',
-            function (data) {
-                //do nothing
+let tasksModeActivated = false;
+let focusModeActivated = false;
+
+document.getElementById('focusMode').addEventListener('click', () => {
+    if (!focusModeActivated) {
+        gsap.to('#tasksMode', {
+            duration: .75,
+            opacity: 0,
+            ease: 'power2.out'
+        })
+        gsap.to('#focusMode', {
+            duration: .75,
+            top: '2%',
+            left: '2%',
+            ease: 'power2.out'
+        })
+        focusModeActivated = true
+        document.getElementById('tasksMode').hidden = true
+        document.getElementById('focusMode').textContent = "EXIT"
+    }
+    else {
+        document.getElementById('tasksMode').hidden = false
+        document.getElementById('focusMode').textContent = "FOCUS"
+        gsap.to('#tasksMode', {
+            duration: .75,
+            opacity: 1,
+            ease: 'power2.out'
+        })
+        gsap.to('#focusMode', {
+            duration: .75,
+            top: '40%',
+            left: '40%',
+            ease: 'power2.out'
+        })
+        focusModeActivated = false
+    }
+})
+
+document.getElementById('tasksMode').addEventListener('click', () => {
+    if (!tasksModeActivated) {
+        gsap.to('#focusMode', {
+            duration: .75,
+            opacity: 0,
+            ease: 'power2.out'
+        })
+        gsap.to('#tasksMode', {
+            duration: .75,
+            top: '2%',
+            left: '2%',
+            ease: 'power2.out'
+        })
+        tasksModeActivated = true
+        document.getElementById('focusMode').hidden = true
+        document.getElementById('tasksMode').textContent = "EXIT"
+    }
+    else {
+        document.getElementById('focusMode').hidden = false
+        document.getElementById('tasksMode').textContent = "TASKS"
+        gsap.to('#focusMode', {
+            duration: .75,
+            opacity: 1,
+            ease: 'power2.out'
+        })
+        gsap.to('#tasksMode', {
+            duration: .75,
+            top: '40%',
+            left: '60%',
+            ease: 'power2.out'
+        })
+        tasksModeActivated = false
+    }
+})
+
+// Function to load tasks dynamically from the server
+function loadTasks() {
+    fetch('/tasks')  // Fetch data from Flask API
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.getElementById("taskTableBody");
+            tableBody.innerHTML = ''; // Clear the table body
+
+            // Loop through the tasks and create a row for each
+            data.forEach(task => {
+                const row = document.createElement('tr');
+
+                // Task Name
+                const taskCell = document.createElement('td');
+                taskCell.textContent = task.task;
+                row.appendChild(taskCell);
+
+                // Due Date
+                const dueDateCell = document.createElement('td');
+                dueDateCell.textContent = task.due_date;
+                row.appendChild(dueDateCell);
+
+                // Status
+                const statusCell = document.createElement('td');
+                statusCell.textContent = task.status;
+                row.appendChild(statusCell);
+
+                // Append the row to the table body
+                tableBody.appendChild(row);
             });
-        return false;
-    });
-});
+        })
+        .catch(error => console.error('Error fetching tasks:', error));
+}
+
+// Load tasks when the page loads
+window.onload = loadTasks;
