@@ -12,6 +12,7 @@ import json
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
+
 class FocusBloomCal:
     """Class to hold functions to be used alongside FocusBloom app."""
     
@@ -40,7 +41,6 @@ class FocusBloomCal:
             with open('token.json', 'w') as token:
                 token.write(creds.to_json())
         return build('calendar', 'v3', credentials=creds)
-    
 
     # fetch the events already in google calendar-- call these OBLIGATIONS
     def fetch_events(self):
@@ -78,7 +78,6 @@ class FocusBloomCal:
             
         return events
 
-
     def is_schedule_conflict(self, current_events, scheduled_event):
         """Checks for schedule conflict before scheduling task"""
         print("Debug is_schedule_conflict")
@@ -99,7 +98,6 @@ class FocusBloomCal:
             if (scheduled_event_start >= start and scheduled_event_start < end) or (scheduled_event_end >= start and scheduled_event_end <= end):
                 return True
         return False
-            
         
     def create_event(self, service, task_name, start_time, end_time):
         """Create a Google Calendar event in CST timezone."""
@@ -121,7 +119,6 @@ class FocusBloomCal:
         }
         event = service.events().insert(calendarId='primary', body=event).execute()
         print(f"Event created: {event.get('htmlLink')}")
-
 
     def schedule_homework_sessions(self, task_name, duration, due_date):
         """
@@ -171,7 +168,6 @@ class FocusBloomCal:
             # Move to the next day
             current_date += datetime.timedelta(days=1)
 
-
     def prompt_for_working_hours(self):
         """Prompt the user for their preferred working hours."""
         valid_entry = False
@@ -184,22 +180,45 @@ class FocusBloomCal:
                 valid_entry = True
         return datetime.datetime.strptime(work_time_start, "%H:%M").time(), datetime.datetime.strptime(work_time_end, "%H:%M").time()
 
-
     def list_events(self, max_results=10):
-        """List the next 10 events on the user's calendar."""
+        """List the next 10 events on the user's calendar and save to obligations.json."""
         service = self.authenticate_google_calendar()
         now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-        events_result = service.events().list(calendarId='primary', timeMin=now,
-                                              maxResults=max_results, singleEvents=True,
-                                              orderBy='startTime').execute()
+        events_result = service.events().list(
+            calendarId='primary',
+            timeMin=now,
+            maxResults=max_results,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
         events = events_result.get('items', [])
 
         if not events:
             print('No upcoming events found.')
-        for event in events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            print(f"{start} - {event['summary']}")
 
+        # Fetch available colors from Google Calendar API
+        colors = service.colors().get().execute()
+        event_colors = colors.get('event', {})  # Extract event colors
+
+        # Add colorId to each event if it exists
+        for event in events:
+            color_id = event.get('colorId', None)  # Get colorId if available
+            if color_id and color_id in event_colors:
+                event['color'] = event_colors[color_id]  # Add the actual color name (if it exists)
+            else:
+                event['color'] = None  # If no colorId or color information, set to None
+
+        # Overwrite obligations.json with the fetched events
+        events_path = os.path.join(os.path.dirname(__file__), 'obligations.json')
+
+        try:
+            with open(events_path, 'w') as file:
+                json.dump(events, file, indent=4)  # Save events to JSON file
+            print(f"obligations.json has been updated with {len(events)} events.")
+        except Exception as e:
+            print(f"Error writing to obligations.json: {e}")
+
+        return events  # <------ Make sure to return the events!
 
     def free_between(self, start, end):
         """
@@ -268,20 +287,20 @@ class FocusBloomCal:
             print("No upcoming event to reschedule.")
             return False
         
-        #event to reschedule
+        # event to reschedule
         enext = events_2days[0]
         next_start = datetime.datetime.fromisoformat(enext['start'].get('dateTime', enext['start'].get('date')))
         next_end = datetime.datetime.fromisoformat(enext['end'].get('dateTime', enext['end'].get('date')))
-        next_dur = next_end - next_start    # Should be a timedelta 
+        next_dur = next_end - next_start  # Should be a timedelta 
         next_name = enext['summary']
         next_id = enext['id']
         
         event_count = len(events_2days)
         for i in range (1, event_count):
-            #future event and end time
+            # future event and end time
             e = events_2days[i] 
             end = datetime.datetime.fromisoformat(e['end'].get('dateTime', e['end'].get('date')))
-            #tentative new start and end times to reschedule
+            # tentative new start and end times to reschedule
 
             resched_start = end + datetime.timedelta(minutes=break_mins)
             if resched_start.time() < self.work_time_start:
@@ -289,20 +308,20 @@ class FocusBloomCal:
 
             resched_end = resched_start + next_dur
 
-            #move to next available workday if busy
+            # move to next available workday if busy
             if resched_end.time() > self.work_time_end:
                 next_day = resched_start.date() + datetime.timedelta(days=1)
                 resched_start = datetime.datetime.combine(next_day, self.work_time_start, tzinfo=ZoneInfo("America/Chicago"))
                 resched_end = resched_start + next_dur
 
-            #checking if free during new time
+            # checking if free during new time
             if (self.free_between(resched_start.isoformat(), resched_end.isoformat()) 
                 and resched_end <= datetime.datetime.combine(resched_end.date(), self.work_time_end).replace(tzinfo=ZoneInfo("America/Chicago"))):
                 ''' Reschedule, and cancel original ''' 
-                self.create_event(service, next_name, 
+                self.create_event(service, next_name,
                                 resched_start, resched_end)
                 service.events().delete(
-                    calendarId='primary', 
+                    calendarId='primary',
                     eventId=next_id).execute()
                 print(f"Event {next_name} rescheduled to {resched_start}") 
                 return True
@@ -340,7 +359,7 @@ def main():
     list_parser = subparsers.add_parser('list', help='List upcoming events')
     list_parser.add_argument('--max_results', type=int, default=10, help='Maximum number of events to list')
 
-    #Reschedule breaktime
+    # Reschedule breaktime
     breaktime_parser = subparsers.add_parser('reschedule', help="Reschedule task")
     breaktime_parser.add_argument('break_mins', type=int, help="Breaktime duration")
 
@@ -361,7 +380,7 @@ def main():
     elif args.command == 'fetch':
         print(user_calendar.fetch_events())
     elif args.command == "conflict":
-        is_conflict =user_calendar.is_schedule_conflict(user_calendar.fetch_events(), [datetime.datetime.strptime('2025-03-0510:30:00', '%Y-%m-%d%H:%M:%S'), datetime.datetime.strptime('2025-03-0515:30:00', '%Y-%m-%d%H:%M:%S')])
+        is_conflict = user_calendar.is_schedule_conflict(user_calendar.fetch_events(), [datetime.datetime.strptime('2025-03-0510:30:00', '%Y-%m-%d%H:%M:%S'), datetime.datetime.strptime('2025-03-0515:30:00', '%Y-%m-%d%H:%M:%S')])
         if (is_conflict):
             print("Conflict found!")
         else:

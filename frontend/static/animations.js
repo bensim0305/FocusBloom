@@ -15,6 +15,14 @@ document.getElementById('focusMode').addEventListener('click', () => {
     } else {
         hide("focusMode", "40%", "FOCUS", "focusModeScreen", "tasksMode")
         focusModeActivated = false
+        gsap.to("#workTimePrompt", {
+            delay: 1,
+            onComplete: () => {
+                document.getElementById('workTimePrompt').hidden = false;
+                document.getElementById('mainFocusMode').hidden = true;
+            }
+        })
+        timeout = null;
     }
 })
 
