@@ -433,7 +433,7 @@ function loadObligations() {
             // Loop through the list of events
             for (let obligation of data.events) {
                 let row = document.createElement('tr');
-                row.style.backgroundColor = obligation.color.background || "#0000000";
+                row.style.backgroundColor = obligation.color?.background || "#0000000";
 
                 // Obligation Name
                 let obligationCell = document.createElement('td');
