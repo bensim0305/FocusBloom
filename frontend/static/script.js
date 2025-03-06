@@ -1,23 +1,6 @@
-function loadCalendarEvents() {
-    fetch('/api/events')
-        .then(response => response.json())
-        .then(data => {
-            console.log("Fetched data:", data);  // Debugging step
+// CONSTANT VARIABLES //////////////////////////////////////////////////////////
 
-            // Iterate over the object instead of expecting an array
-            const eventsDiv = document.getElementById('events');
-            eventsDiv.innerHTML = '';  // Clear previous events
-            Object.entries(data).forEach(([eventTitle, event]) => {
-                const eventDiv = document.createElement('div');
-                eventDiv.textContent = `Event: ${eventTitle} - Start: ${event.start.dateTime}`;
-                eventsDiv.appendChild(eventDiv);
-            });
-        })
-        .catch(error => console.error('Error fetching events:', error));
-}
-
-let checkinTime = 30;
-
+// default colors assigned to tasks
 const bgColors = [
     "seashell",
     "peachpuff",
@@ -32,6 +15,7 @@ const bgColors = [
     "paleturquoise"
 ];
 
+// hardcoded sample tasks
 const tasks = [
     "Peer edit Fred's SOSC essay",
     "Review key concepts for biology midterm",
@@ -49,7 +33,9 @@ const tasks = [
 let index = 0;
 let next = 1;
 
-let timeout = setTimeout(heyListen, checkinTime * 1000);
+let checkinTime = 1800; // time between check-ins in seconds, default is 30 minutes
+let timeout = null;
+// let timeout = setTimeout(heyListen, checkinTime * 1000);
 
 function heyListen() {
     clearTimeout(timeout); // Clear the timeout to stop it
@@ -123,30 +109,55 @@ function finishTask() {
     restartTimer();
 }
 
+// TASKS SCREEN FUNCTIONS //////////////////////////////////////////////////////
+
+// function that enables tabs to switch between tables
+function showTable(tableType) {
+    if (tableType === 'tasks') {
+        document.getElementById('tasksTable').style.display = 'block';
+        document.getElementById('obligationsTable').style.display = 'none';
+        document.getElementById('tasksTab').classList.add('active');
+        document.getElementById('obligationsTab').classList.remove('active');
+    } else if (tableType === 'obligations') {
+        document.getElementById('tasksTable').style.display = 'none';
+        document.getElementById('obligationsTable').style.display = 'block';
+        document.getElementById('obligationsTab').classList.add('active');
+        document.getElementById('tasksTab').classList.remove('active');
+    }
+}
+
 // Function to load tasks dynamically from the server
 function loadTasks() {
     fetch('/tasks')  // Fetch data from Flask API
         .then(response => response.json())
         .then(data => {
-            const tableBody = document.getElementById("taskTableBody");
+            let tableBody = document.getElementById("taskTableBody");
             tableBody.innerHTML = ''; // Clear the table body
+
+            // Ensure the response contains events
+            if (!data || data.length === 0) {
+                let row = document.createElement('tr');
+                row.textContent = "No upcoming tasks found.";
+                tableBody.appendChild(row);
+                return;
+            }
 
             // Loop through the tasks and create a row for each
             data.forEach(task => {
-                const row = document.createElement('tr');
+                let row = document.createElement('tr');
 
                 // Task Name
-                const taskCell = document.createElement('td');
+                let taskCell = document.createElement('td');
                 taskCell.textContent = task.task;
                 row.appendChild(taskCell);
 
                 // Due Date
-                const dueDateCell = document.createElement('td');
+                let dueDateCell = document.createElement('td');
                 dueDateCell.textContent = task.due_date;
                 row.appendChild(dueDateCell);
 
                 // Status
-                const statusCell = document.createElement('td');
+                let statusCell = document.createElement('td');
                 statusCell.textContent = task.status;
                 row.appendChild(statusCell);
 
@@ -157,5 +168,57 @@ function loadTasks() {
         .catch(error => console.error('Error fetching tasks:', error));
 }
 
-// Load tasks when the page loads
-window.onload = loadTasks;
+// Helper function to make obligations times prettier to look at
+function formatDateTime(dateTimeString) {
+    const date = new Date(dateTimeString);
+    return date.toLocaleString('en-US', {
+        month: 'short',    // 'Mar'
+        day: 'numeric',    // '6'
+        hour: 'numeric',   // '8'
+        minute: 'numeric', // '00'
+        hour12: true       // 'AM/PM'
+    });
+}
+
+// Function to load obligations dynamically from the server
+function loadObligations() {
+    fetch('/list_events')  // Fetch data from Flask API
+        .then(response => response.json())
+        .then(data => {
+            let tableBody = document.getElementById("obligationTableBody");
+            tableBody.innerHTML = ''; // Clear the table body
+
+            // Ensure the response contains events
+            if (!data.events || data.events.length === 0) {
+                let row = document.createElement('tr');
+                row.textContent = "No upcoming events found.";
+                tableBody.appendChild(row);
+                return;
+            }
+
+            // Loop through the list of events
+            for (let obligation of data.events) {
+                let row = document.createElement('tr');
+                row.style.backgroundColor = obligation.color.background || "#0000000";
+
+                // Obligation Name
+                let obligationCell = document.createElement('td');
+                obligationCell.textContent = obligation.summary || "No title";
+                row.appendChild(obligationCell);
+
+                // Start Time
+                let startTimeCell = document.createElement('td');
+                startTimeCell.textContent = formatDateTime(obligation.start?.dateTime) || formatDateTime(obligation.start?.date) || "No start time";
+                row.appendChild(startTimeCell);
+
+                // End Time
+                let endTimeCell = document.createElement('td');
+                endTimeCell.textContent = formatDateTime(obligation.end?.dateTime) || formatDateTime(obligation.end?.date) || "No end time";
+                row.appendChild(endTimeCell);
+
+                // Append the row to the table body
+                tableBody.appendChild(row);
+            }
+        })
+        .catch(error => console.error('Error fetching tasks:', error));
+}

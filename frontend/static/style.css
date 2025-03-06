@@ -1,10 +1,11 @@
+/* ELEMENT CATEGORY STYLES ****************************************************/
 * {
     font-family: "Nunito", sans-serif;
-    user-select: none;
-    -khtml-user-select: none;
-    -o-user-select: none;
-    -moz-user-select: -moz-none;
-    -webkit-user-select: none;
+    user-select: text;
+    -khtml-user-select: text;
+    -o-user-select: text;
+    -moz-user-select: -moz-text;
+    -webkit-user-select: text;
 }
 
 body {
@@ -12,6 +13,67 @@ body {
     overflow: hidden;
     background-color: thistle;
 }
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    background-color: plum;
+}
+
+ul {
+    list-style-type: none;
+}
+
+li span {
+    display: inline-block;
+    width: 200px;
+}
+
+button {
+    height: 30px;
+    border: 1px solid #5d544b;
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 20px;
+    color: #5D544B;
+    background-color: #ECE8C6;
+    vertical-align: middle;
+    margin: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: palevioletred;
+}
+
+/* CLASS STYLES ***************************************************************/
+
+.container {
+    position: absolute;
+    padding: 5% 2%;
+    overflow: auto;
+    border: 1px solid #5d544b;
+    border-radius: 10px;
+}
+
+.tabs {
+    margin-bottom: 20px;
+}
+
+.tab-button.active {
+    background-color: mediumvioletred;
+    color: white;
+}
+
+.table-container {
+    display: none;
+}
+
+/* ID STYLES ******************************************************************/
 
 #normalScreen {
     position: absolute;
@@ -43,32 +105,6 @@ body {
     right: 33%;
 }
 
-ul {
-    list-style-type: none;
-}
-
-li span {
-    display: inline-block;
-    width: 200px;
-}
-
-button {
-    height: 30px;
-    border: 1px solid #5d544b;
-    border-radius: 10px;
-    font-family: 'Nunito', sans-serif;
-    font-size: 20px;
-    color: #5D544B;
-    background-color: #ECE8C6;
-    vertical-align: middle;
-    margin: 8px;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #45a049;
-}
-
 #nextTaskHeader {
     position: absolute;
     top: 5%;
@@ -96,18 +132,10 @@ button:hover {
     transform: translate(-50%, -50%);
 }
 
-.container {
-    position: absolute;
-    padding: 5%;
-    overflow: auto;
-    border: 1px solid #5d544b;
-    border-radius: 10px;
-}
-
 #taskTableDiv {
     top: 10%;
     left: 10%;
-    width: 25%;
+    width: 40%;
     height: 50%;
 }
 

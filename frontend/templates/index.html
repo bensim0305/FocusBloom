@@ -47,24 +47,43 @@
 
     <div id="tasksModeScreen" hidden style="opacity: 0;">
         <div class="container" id="taskTableDiv">
-            <h1>Tasks:</h1>
-
-            <table id="taskTable" border="1">
-                <thead>
-                    <tr>
-                        <th>Task</th>
-                        <th>Due Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="taskTableBody">
-                    <!-- Table rows will be populated dynamically -->
-                </tbody>
-            </table>
-
-            <button onclick="loadCalendarEvents()" hidden>Load Calendar Events</button>
-
-            <div id="events"></div>
+            <!-- TABS for switching between tables ---------------------------->
+            <div class="tabs">
+                <button class="tab-button" id="tasksTab" onclick="showTable('tasks')">Tasks</button>
+                <button class="tab-button" id="obligationsTab" onclick="showTable('obligations')">Obligations</button>
+            </div>
+        
+            <!-- TASKS TABLE -------------------------------------------------->
+            <div id="tasksTable" class="table-container">
+                <table id="taskTable" border="1">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskTableBody">
+                        <!-- Table rows will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        
+            <!-- OBLIGATIONS TABLE -------------------------------------------->
+            <div id="obligationsTable" class="table-container" style="display:none;">
+                <table id="obligationTable" border="1">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="obligationTableBody">
+                        <!-- Table rows will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="container" id="createTaskDiv">
@@ -88,7 +107,9 @@
 
     <script>
         window.onload = (event) => {
+            showTable('tasks');
             loadTasks();
+            loadObligations();
         };
     </script>
 
