@@ -99,6 +99,11 @@ class FocusBloomCal:
         
     def create_event(self, service, task_name, start_time, end_time):
         """Create a Google Calendar event in CST timezone."""
+            # Ensure start and end are in RFC3339 format
+        if isinstance(start_time, datetime.datetime):
+            start_time = start_time.isoformat()
+        if isinstance(end_time, datetime.datetime):
+            end_time = end_time.isoformat()
         event = {
             'summary': task_name,
             'start': {
@@ -194,60 +199,91 @@ class FocusBloomCal:
 
     def free_between(self, start, end):
         """
-        Helper for reschedule
+        Check if the time slot between `start` and `end` is completely free.
         """
         service = self.service
+
+        # Convert start and end to datetime objects if they are strings
+        if isinstance(start, str):
+            start = datetime.datetime.fromisoformat(start)
+        if isinstance(end, str):
+            end = datetime.datetime.fromisoformat(end)
+
+        # Ensure start is earlier than end
+        if start >= end:
+            raise ValueError(f"Invalid time range: start ({start}) must be earlier than end ({end})")
+
+        # Convert start and end to RFC3339 format
+        time_min = start.isoformat()
+        time_max = end.isoformat()
+
+        # Fetch events in the time range
         events = service.events().list(
-            calendarId='primary', 
-            timeMin=start, timeMax = end, 
-            orderBy='startTime').execute().get('items', [])
-        if not events: 
+            calendarId='primary',
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute().get('items', [])
+
+        # If no events, the slot is free
+        if not events:
             return True
-        else: 
-            return False
-        
+
+        # Check for overlapping events
+        for event in events:
+            event_start = event['start'].get('dateTime', event['start'].get('date'))
+            event_end = event['end'].get('dateTime', event['end'].get('date'))
+
+            # Convert event start and end to datetime objects
+            event_start = datetime.datetime.fromisoformat(event_start)
+            event_end = datetime.datetime.fromisoformat(event_end)
+
+            # Check for overlap
+            if not (event_end <= start or event_start >= end):
+                # There is an overlap, so the slot is not free
+                return False
+
+        # No overlapping events found
+        return True
 
     def reschedule_next_event(self, break_mins=0): 
         service = self.authenticate_google_calendar()
 
         now = datetime.datetime.now(tz=ZoneInfo("America/Chicago"))
 
-        ''' 
-        End of tomorrow (now only reschedule within 2 days) 
-        '''
-        EOD_tmrw = datetime.datetime.combine(now + datetime.timedelta(days=1), datetime.time.max)
-        print(f"EOD_tmrw: {EOD_tmrw}")
-        print(type(now))
+        # EOD to be rescheduled within 2 days
+        EOD_tmrw = datetime.datetime.combine(now.date() + datetime.timedelta(days=1), datetime.time.max)
+        EOD_tmrw = EOD_tmrw.replace(tzinfo=ZoneInfo("America/Chicago"))
+
         events_2days = service.events().list(
-            calendarId='primary', timeMin=now, timeMax=EOD_tmrw,
+            calendarId='primary', timeMin=now.isoformat(), timeMax=EOD_tmrw.isoformat(),
             singleEvents=True,
             orderBy='startTime').execute().get('items', [])
         if not events_2days:
             print("No upcoming event to reschedule.")
             return False
         
-        ''' 
-        The event to reschedule and its key info 
-        '''
+        #event to reschedule
         enext = events_2days[0]
-        next_start = enext['start'].get('dateTime', enext['start'].get('date'))
-        next_end = enext['end'].get('dateTime', enext['end'].get('date'))
-        next_dur = next_start - next_end    # Should be a timedelta 
+        next_start = datetime.datetime.fromisoformat(enext['start'].get('dateTime', enext['start'].get('date')))
+        next_end = datetime.datetime.fromisoformat(enext['end'].get('dateTime', enext['end'].get('date')))
+        next_dur = next_end - next_start    # Should be a timedelta 
         next_name = enext['summary']
         next_id = enext['id']
         
         event_count = len(events_2days)
         for i in range (1, event_count):
-            ''' A future event and its end time '''
+            #future event and end time
             e = events_2days[i] 
-            end = e['end'].get('dateTime', e['end'].get('date'))
-            ''' The tentative new start and end times of the 
-                event being rescheduled '''
+            end = datetime.datetime.fromisoformat(e['end'].get('dateTime', e['end'].get('date')))
+            #tentative new start and end times to reschedule
             resched_start = end + datetime.timedelta(minutes=break_mins)
             resched_end = resched_start + next_dur
-            ''' Test if we are free during new time '''
-            if (self.free_between(resched_start, resched_end) 
-                and resched_end <= self.work_time_end):
+            
+            #checking if free during new time
+            if (self.free_between(resched_start.isoformat(), resched_end.isoformat()) 
+                and resched_end <= datetime.datetime.combine(resched_end.date(), self.work_time_end).replace(tzinfo=ZoneInfo("America/Chicago"))):
                 ''' Reschedule, and cancel original ''' 
                 self.create_event(service, next_name, 
                                 resched_start, resched_end)
