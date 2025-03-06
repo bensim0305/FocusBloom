@@ -1,3 +1,5 @@
 token.json
 credentials.json
 backend/events.json
+frontend/tasks.json
+*.json
