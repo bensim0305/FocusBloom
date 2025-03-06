@@ -37,6 +37,7 @@ class FocusBloomCal:
                 token.write(creds.to_json())
         return build('calendar', 'v3', credentials=creds)
     
+
     def fetch_events(self):
         """ Gather existing google calendar events"""
         events = {}
@@ -54,9 +55,31 @@ class FocusBloomCal:
             except Exception as e:
                 print(f"An error occurred: {e}")
                 break
-        print(events)
         return events
 
+
+    def is_schedule_conflict(self, current_events, scheduled_event):
+        """Checks for schedule conflict before scheduling task"""
+        print("Debug is_schedule_conflict")
+        events_start_end_times = {}
+        scheduled_event_start = scheduled_event[0]
+        scheduled_event_end = scheduled_event[1]
+
+        for key in current_events.keys():
+            events_start_end_times[key] = [current_events[key]['start'], current_events[key]['end']]
+
+        print(events_start_end_times)
+        ctr = 0
+        for vals in events_start_end_times.values():
+            ctr += 1
+            start = datetime.datetime.strptime(vals[0]['dateTime'].split('T')[0] + vals[0]['dateTime'].split('T')[1].split('-')[0], '%Y-%m-%d%H:%M:%S')
+            end = datetime.datetime.strptime(vals[1]['dateTime'].split('T')[0] + vals[1]['dateTime'].split('T')[1].split('-')[0], '%Y-%m-%d%H:%M:%S')
+            print(f"Entry {ctr}:\n   Start: {start}\n   End: {end}")
+            if (scheduled_event_start >= start and scheduled_event_start < end) or (scheduled_event_end >= start and scheduled_event_end <= end):
+                return True
+        return False
+            
+        
     def create_event(self, service, task_name, start_time, end_time):
         """Create a Google Calendar event in CST timezone."""
         event = {
@@ -72,6 +95,7 @@ class FocusBloomCal:
         }
         event = service.events().insert(calendarId='primary', body=event).execute()
         print(f"Event created: {event.get('htmlLink')}")
+
 
     def schedule_homework_sessions(self, task_name, duration, due_date):
         """
@@ -92,7 +116,12 @@ class FocusBloomCal:
                         self.work_time_start
                     ) + datetime.timedelta(hours=session * (duration / 60 + 1))  # Add break between sessions
                     end_time = start_time + datetime.timedelta(minutes=duration)
-
+                    scheduled_event = (start_time, end_time)
+                    is_conflict = self.is_schedule_conflict(self.fetch_events(), scheduled_event)
+                    if (is_conflict):
+                        print("Conflict found!")
+                    else:
+                        print("No schedule conflicts!")
                     # Check if the session fits within working hours
                     if end_time.time() <= self.work_time_end:
                         # Format times in ISO format with CST timezone
@@ -107,6 +136,7 @@ class FocusBloomCal:
             # Move to the next day
             current_date += datetime.timedelta(days=1)
 
+
     def prompt_for_working_hours(self):
         """Prompt the user for their preferred working hours."""
         valid_entry = False
@@ -118,6 +148,7 @@ class FocusBloomCal:
             else:
                 valid_entry = True
         return datetime.datetime.strptime(work_time_start, "%H:%M").time(), datetime.datetime.strptime(work_time_end, "%H:%M").time()
+
 
     def list_events(self, max_results=10):
         """List the next 10 events on the user's calendar."""
@@ -133,6 +164,7 @@ class FocusBloomCal:
         for event in events:
             start = event['start'].get('dateTime', event['start'].get('date'))
             print(f"{start} - {event['summary']}")
+
 
 def is_valid_input(work_time_start, work_time_end):
     """Checks if time inputs are of valid format"""
@@ -166,6 +198,7 @@ def main():
 
 
     subparsers.add_parser('fetch', help='fetch events testing')
+    subparsers.add_parser('conflict', help='schedule conflict testing')
     args = parser.parse_args()
 
     # Initalize object
@@ -178,7 +211,13 @@ def main():
     elif args.command == 'list':
         user_calendar.list_events(args.max_results)
     elif args.command == 'fetch':
-        user_calendar.fetch_events()
+        print(user_calendar.fetch_events())
+    elif args.command == "conflict":
+        is_conflict =user_calendar.is_schedule_conflict(user_calendar.fetch_events(), [datetime.datetime.strptime('2025-03-0510:30:00', '%Y-%m-%d%H:%M:%S'), datetime.datetime.strptime('2025-03-0515:30:00', '%Y-%m-%d%H:%M:%S')])
+        if (is_conflict):
+            print("Conflict found!")
+        else:
+            print("No schedule conflicts!")
     else:
         parser.print_help()
         # response = input()
