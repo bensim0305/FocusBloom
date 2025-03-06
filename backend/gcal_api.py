@@ -68,13 +68,13 @@ class FocusBloomCal:
         for key in current_events.keys():
             events_start_end_times[key] = [current_events[key]['start'], current_events[key]['end']]
 
-        print(events_start_end_times)
+        print(f"-----------------------------------\nProposed Start: {scheduled_event_start}\nProposed End: {scheduled_event_end}\n-----------------------------------")
         ctr = 0
         for vals in events_start_end_times.values():
             ctr += 1
             start = datetime.datetime.strptime(vals[0]['dateTime'].split('T')[0] + vals[0]['dateTime'].split('T')[1].split('-')[0], '%Y-%m-%d%H:%M:%S')
             end = datetime.datetime.strptime(vals[1]['dateTime'].split('T')[0] + vals[1]['dateTime'].split('T')[1].split('-')[0], '%Y-%m-%d%H:%M:%S')
-            print(f"Entry {ctr}:\n   Start: {start}\n   End: {end}")
+            print(f"Event {ctr}:\n   Start: {start}\n   End: {end}")
             if (scheduled_event_start >= start and scheduled_event_start < end) or (scheduled_event_end >= start and scheduled_event_end <= end):
                 return True
         return False
@@ -119,19 +119,20 @@ class FocusBloomCal:
                     scheduled_event = (start_time, end_time)
                     is_conflict = self.is_schedule_conflict(self.fetch_events(), scheduled_event)
                     if (is_conflict):
-                        print("Conflict found!")
+                        print("Conflict found! Scheduling next available slot.")
+
                     else:
                         print("No schedule conflicts!")
-                    # Check if the session fits within working hours
-                    if end_time.time() <= self.work_time_end:
-                        # Format times in ISO format with CST timezone
-                        start_time_iso = start_time.isoformat()
-                        end_time_iso = end_time.isoformat()
+                        # Check if the session fits within working hours
+                        if end_time.time() <= self.work_time_end:
+                            # Format times in ISO format with CST timezone
+                            start_time_iso = start_time.isoformat()
+                            end_time_iso = end_time.isoformat()
 
-                        # Create the event
-                        self.create_event(service, task_name, start_time_iso, end_time_iso)
-                    else:
-                        break  # Stop scheduling for the day if the session doesn't fit
+                            # Create the event
+                            self.create_event(service, task_name, start_time_iso, end_time_iso)
+                        else:
+                            break  # Stop scheduling for the day if the session doesn't fit
 
             # Move to the next day
             current_date += datetime.timedelta(days=1)
@@ -165,6 +166,7 @@ class FocusBloomCal:
             start = event['start'].get('dateTime', event['start'].get('date'))
             print(f"{start} - {event['summary']}")
 
+
     def free_between(self, start, end):
         """
         Helper for reschedule
@@ -179,6 +181,7 @@ class FocusBloomCal:
         else: 
             return False
         
+
     def reschedule_next_event(self, now, break_mins=0): 
         service = self.service
 
@@ -189,7 +192,7 @@ class FocusBloomCal:
             singleEvents=True,
             orderBy='startTime').execute().get('items', [])
         if not events_2days:
-            Print("No upcoming event to reschedule.")
+            print("No upcoming event to reschedule.")
             return False
         
         ''' The event to reschedule and its key info '''
@@ -210,7 +213,7 @@ class FocusBloomCal:
             resched_start = end + datetime.timedelta(minutes=break_mins)
             resched_end = resched_start + next_dur
             ''' Test if we are free during new time '''
-            if (free_between(start, end) 
+            if (self.free_between(start, end) 
                 and resched_end <= self.work_time_end):
                 ''' Reschedule, and cancel original ''' 
                 create_event(service, next_name, 
@@ -223,6 +226,7 @@ class FocusBloomCal:
         
         print("No free time slot in 2 days")
         return False
+
 
 def is_valid_input(work_time_start, work_time_end):
     """Checks if time inputs are of valid format"""
