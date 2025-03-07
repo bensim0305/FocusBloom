@@ -106,4 +106,4 @@ Frontend functions in `frontend/static/script.js` are run in `frontend/templates
 
 ## Future Enhancements
 -   Improve UI to dynamically update task lists without page refresh.
--   Add authentication to manage user-specific tasks.
+-   Improve communication between frontend and backend.
