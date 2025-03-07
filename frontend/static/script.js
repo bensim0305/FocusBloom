@@ -33,7 +33,7 @@ const sampleTasks = [
 let index = 0;
 let next = 1;
 
-let checkinTime = 1800; // time between check-ins in seconds, default is 30 minutes
+let checkinTime = 10 // time between check-ins in seconds, default is 30 minutes
 let timeout = null;
 // let timeout = setTimeout(heyListen, checkinTime * 1000);
 
